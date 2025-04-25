@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Cart from "./pages/Cart";
 import Privileges from "./pages/Privileges";
+import Cases from "./pages/Cases";
+import FCPlus from "./pages/FCPlus";
+import Other from "./pages/Other";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +25,9 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/privileges" element={<Privileges />} />
+            <Route path="/cases" element={<Cases />} />
+            <Route path="/fcplus" element={<FCPlus />} />
+            <Route path="/other" element={<Other />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

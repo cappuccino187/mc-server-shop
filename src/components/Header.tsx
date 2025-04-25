@@ -1,67 +1,155 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ShoppingCart, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/components/CartContext';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { cartItems } = useCart();
-  
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const { cartItems, totalPrice } = useCart();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Calculate total items in cart
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navItems = [
+    { title: 'Главная', path: '/' },
+    { title: 'Привилегии', path: '/privileges' },
+    { title: 'Кейсы', path: '/cases' },
+    { title: 'FC+', path: '/fcplus' },
+    { title: 'Другое', path: '/other' },
+  ];
 
   return (
-    <header className="bg-minecraft-dark bg-opacity-90 text-white py-4 sticky top-0 z-50 backdrop-blur-sm">
-      <div className="container mx-auto px-4 flex justify-between items-center">
-        <div className="flex items-center">
-          <Link to="/" className="text-2xl font-bold text-minecraft-primary hover:text-minecraft-accent transition-colors">
-            FcGrief
-          </Link>
-        </div>
-        
-        {/* Mobile menu button */}
-        <div className="lg:hidden">
-          <Button variant="ghost" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Menu">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </Button>
-        </div>
-
-        {/* Desktop navigation */}
-        <nav className="hidden lg:flex space-x-8">
-          <Link to="/" className="hover:text-minecraft-accent transition-colors py-2">Главная</Link>
-          <Link to="/privileges" className="hover:text-minecraft-accent transition-colors py-2">Привилегии</Link>
-          <Link to="/cases" className="hover:text-minecraft-accent transition-colors py-2">Кейсы</Link>
-          <Link to="/fcplus" className="hover:text-minecraft-accent transition-colors py-2">FC+</Link>
-          <Link to="/other" className="hover:text-minecraft-accent transition-colors py-2">Другое</Link>
-        </nav>
-
-        <Link to="/cart" className="relative">
-          <Button variant="outline" className="border-minecraft-accent">
-            <ShoppingCart className="text-minecraft-accent" />
-            {totalItems > 0 && (
-              <Badge variant="destructive" className="absolute -top-2 -right-2 min-w-5 h-5 flex items-center justify-center">
-                {totalItems}
-              </Badge>
-            )}
-          </Button>
-        </Link>
-      </div>
-
-      {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="lg:hidden bg-minecraft-dark bg-opacity-95 py-4 px-6 absolute w-full">
-          <nav className="flex flex-col space-y-4">
-            <Link to="/" onClick={() => setIsMenuOpen(false)} className="hover:text-minecraft-accent transition-colors">Главная</Link>
-            <Link to="/privileges" onClick={() => setIsMenuOpen(false)} className="hover:text-minecraft-accent transition-colors">Привилегии</Link>
-            <Link to="/cases" onClick={() => setIsMenuOpen(false)} className="hover:text-minecraft-accent transition-colors">Кейсы</Link>
-            <Link to="/fcplus" onClick={() => setIsMenuOpen(false)} className="hover:text-minecraft-accent transition-colors">FC+</Link>
-            <Link to="/other" onClick={() => setIsMenuOpen(false)} className="hover:text-minecraft-accent transition-colors">Другое</Link>
-          </nav>
-        </div>
+    <header 
+      className={cn(
+        'sticky top-0 z-50 w-full transition-all duration-300',
+        isScrolled 
+          ? 'bg-gray-900/90 backdrop-blur-lg shadow-lg py-3' 
+          : 'bg-transparent py-5'
       )}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="text-xl md:text-2xl font-bold text-white">
+              <span className="text-purple-500">Fc</span>Grief
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  window.location.pathname === item.path
+                    ? 'text-white bg-purple-600/30'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {item.title}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Cart Button */}
+          <div className="flex items-center space-x-2">
+            <Link to="/cart">
+              <Button variant="outline" size="sm" className="relative bg-transparent border-purple-600/30 text-white hover:bg-purple-600/20 hover:border-purple-600/50">
+                <ShoppingCart className="h-4 w-4 mr-1" />
+                <span>Корзина</span>
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </Button>
+            </Link>
+
+            {/* Mobile Menu Trigger */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="md:hidden text-white hover:bg-white/10"
+                >
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[80%] sm:w-[350px] bg-gray-900 border-gray-800 p-0">
+                <div className="flex flex-col h-full">
+                  <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                    <span className="text-xl font-bold text-white">
+                      <span className="text-purple-500">Fc</span>Grief
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-gray-400 hover:text-white hover:bg-white/10"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  
+                  <div className="py-4 flex-grow">
+                    <nav className="flex flex-col space-y-1 px-2">
+                      {navItems.map((item) => (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={`px-4 py-3 rounded-md transition-colors ${
+                            window.location.pathname === item.path
+                              ? 'text-white bg-purple-600/30'
+                              : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {item.title}
+                        </Link>
+                      ))}
+                    </nav>
+                  </div>
+                  
+                  <div className="p-4 border-t border-gray-800">
+                    <Link 
+                      to="/cart" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between w-full p-3 rounded-md bg-purple-600/20 text-white hover:bg-purple-600/30 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <ShoppingCart className="h-5 w-5 mr-2" />
+                        <span>Корзина</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="block text-sm">{totalItems} {totalItems === 1 ? 'товар' : 
+                          totalItems > 1 && totalItems < 5 ? 'товара' : 'товаров'}</span>
+                        <span className="block font-bold">{totalPrice.toFixed(2)} ₽</span>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </div>
     </header>
   );
 };
