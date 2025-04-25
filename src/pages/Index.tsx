@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -39,32 +38,21 @@ const Index = () => {
       
       <main className="flex-grow container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <motion.section 
-          className="text-center py-16 mb-12 rounded-xl bg-minecraft-dark bg-opacity-70 backdrop-blur-sm"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-          transition={{ duration: 0.6 }}
+        <section 
+          className={`text-center py-16 mb-12 rounded-xl bg-minecraft-dark bg-opacity-70 backdrop-blur-sm transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
-          <motion.h1 
-            className="text-4xl md:text-6xl font-bold text-white mb-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
+          <h1 
+            className={`text-4xl md:text-6xl font-bold text-white mb-4 transition-opacity duration-800 delay-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
           >
             FcGrief <span className="text-minecraft-accent">Minecraft Сервер</span>
-          </motion.h1>
-          <motion.p 
-            className="text-xl text-gray-200 max-w-2xl mx-auto mb-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
+          </h1>
+          <p 
+            className={`text-xl text-gray-200 max-w-2xl mx-auto mb-8 transition-opacity duration-800 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
           >
             Получите преимущества на сервере с нашим донат-магазином
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
+          </p>
+          <div
+            className={`transition-opacity duration-800 delay-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
           >
             <Button asChild className="minecraft-btn bg-minecraft-primary hover:bg-minecraft-secondary mr-4">
               <Link to="/privileges">Привилегии</Link>
@@ -72,19 +60,17 @@ const Index = () => {
             <Button asChild variant="outline" className="border-minecraft-accent text-white hover:bg-minecraft-accent/20">
               <Link to="/cases">Кейсы</Link>
             </Button>
-          </motion.div>
-        </motion.section>
+          </div>
+        </section>
 
         {/* Categories Section */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-8 text-center text-white bg-minecraft-dark bg-opacity-70 py-2 rounded-lg">Категории</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {categoryItems.map((item, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-                transition={{ delay: 0.2 * (index + 1), duration: 0.5 }}
+                className={`transition-all duration-500 delay-${index * 200} ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
               >
                 <Link to={item.link}>
                   <Card className="overflow-hidden h-full hover:shadow-xl transition-all duration-300 hover:scale-105 bg-white bg-opacity-90 backdrop-blur-sm border-minecraft-primary/30">
@@ -101,7 +87,7 @@ const Index = () => {
                     </CardContent>
                   </Card>
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
         </section>
@@ -131,18 +117,15 @@ const Index = () => {
         </section>
 
         {/* Call to Action */}
-        <motion.section 
-          className="text-center py-16 bg-minecraft-primary rounded-xl text-white mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-          transition={{ delay: 1, duration: 0.6 }}
+        <section 
+          className={`text-center py-16 bg-minecraft-primary rounded-xl text-white mb-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
         >
           <h2 className="text-3xl font-bold mb-4">Готовы начать?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">Выбирайте из широкого ассортимента товаров для улучшения игрового процесса</p>
           <Button asChild variant="outline" className="bg-white text-minecraft-primary hover:bg-gray-100 border-white">
             <Link to="/privileges">Купить привилегию</Link>
           </Button>
-        </motion.section>
+        </section>
       </main>
 
       <footer className="bg-minecraft-dark text-white py-8">
