@@ -12,12 +12,25 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const [minecraftUsername, setMinecraftUsername] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [orderStatus, setOrderStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
+  const [fcoinsQuantity, setFcoinsQuantity] = useState<Record<string, number>>({});
+  const [paymentId, setPaymentId] = useState('');
+  const [orderStatus, setOrderStatus] = useState<'idle' | 'processing' | 'waitingConfirmation' | 'completed' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleQuantityChange = (id: string, currentQuantity: number, change: number) => {
     updateQuantity(id, currentQuantity + change);
+  };
+
+  const handleFCoinsQuantityChange = (id: string, quantity: number) => {
+    setFcoinsQuantity(prev => ({
+      ...prev,
+      [id]: quantity
+    }));
+  };
+
+  // Проверка, является ли товар валютой FCoins
+  const isFCoinsProduct = (id: string) => {
+    return id.includes('currency-fcoins');
   };
 
   const handleCheckout = async () => {
@@ -34,24 +47,62 @@ const Cart = () => {
     setOrderStatus('processing');
     setErrorMessage('');
 
-    // Имитация обработки платежа
+    // Генерация уникальной ссылки на DonationAlerts
+    const donationUrl = generateDonationUrl();
+    
+    // Переход к ожиданию подтверждения
+    setOrderStatus('waitingConfirmation');
+  };
+
+  const generateDonationUrl = () => {
+    const message = `Покупка на FcGrief: ${cartItems.map(item => 
+      `${item.product.name} x${item.quantity}`).join(', ')} для аккаунта ${minecraftUsername}`;
+    
+    // Создаем уникальный идентификатор для отслеживания платежа
+    const paymentId = `FC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    setPaymentId(paymentId);
+    
+    // Формируем URL для DonationAlerts с параметрами
+    return `https://www.donationalerts.com/r/fcgrief?amount=${totalPrice.toFixed(2)}&message=${encodeURIComponent(message + " PaymentID:" + paymentId)}`;
+  };
+
+  const handlePaymentVerification = () => {
+    setOrderStatus('processing');
+    
+    // Имитация проверки платежа (в реальном сценарии здесь будет API-запрос)
+    setTimeout(() => {
+      // Успешная проверка платежа
+      completeOrder();
+    }, 2000);
+  };
+
+  const completeOrder = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Имитация вызова RCON для выдачи предметов
-      console.log('RCON call would happen here with these details:');
+      // Здесь будет реальное подключение к RCON
+      console.log('RCON connection to c11.play2go.cloud:20644');
       console.log('Username:', minecraftUsername);
-      console.log('Items:', cartItems.map(item => `${item.product.id} x${item.quantity}`));
+      console.log('Items:', cartItems.map(item => {
+        // Для FCoins применяем особую логику с учетом количества
+        if (isFCoinsProduct(item.product.id)) {
+          const coinsPerPurchase = 3; // 3 FCoins за 1 рубль
+          const totalCoins = item.quantity * coinsPerPurchase * (fcoinsQuantity[item.product.id] || 1);
+          return `lp user ${minecraftUsername} addbalance fcoins ${totalCoins}`;
+        } else {
+          // Для других товаров стандартная команда
+          return `lp user ${minecraftUsername} parent add ${item.product.id} server=survival`;
+        }
+      }));
       
       setOrderStatus('completed');
+      
       // Очистка корзины после успешной покупки
       setTimeout(() => {
         clearCart();
       }, 3000);
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('RCON error:', error);
       setOrderStatus('error');
-      setErrorMessage('Произошла ошибка при обработке платежа. Пожалуйста, попробуйте снова.');
+      setErrorMessage('Произошла ошибка при выдаче товаров. Обратитесь в поддержку.');
     }
   };
 
@@ -82,6 +133,55 @@ const Cart = () => {
               className="mx-auto bg-green-600 hover:bg-green-500"
             >
               Вернуться в магазин
+            </Button>
+          </div>
+        ) : orderStatus === 'waitingConfirmation' ? (
+          <div className="max-w-2xl mx-auto bg-white/10 rounded-xl p-8 text-center">
+            <div className="mb-6 flex justify-center">
+              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center">
+                <div className="animate-pulse">💰</div>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-4">Оплата через DonationAlerts</h2>
+            <p className="text-gray-300 mb-6">
+              Для завершения покупки, пожалуйста, перейдите по ссылке ниже и сделайте пожертвование на сумму <span className="font-bold text-yellow-400">{totalPrice.toFixed(2)} ₽</span>
+            </p>
+            
+            <div className="mb-6 bg-gray-800 p-4 rounded-lg">
+              <p className="text-sm text-gray-400 mb-2">Ваш ID платежа:</p>
+              <p className="text-yellow-400 font-mono">{paymentId}</p>
+              <p className="text-xs text-gray-500 mt-2">Обязательно сохраните этот ID</p>
+            </div>
+            
+            <div className="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
+              <Button asChild className="bg-green-600 hover:bg-green-500">
+                <a href="https://www.donationalerts.com/r/fcgrief" target="_blank" rel="noopener noreferrer">
+                  Перейти к оплате
+                </a>
+              </Button>
+              <Button 
+                onClick={handlePaymentVerification} 
+                variant="outline" 
+                className="border-blue-500 text-blue-400 hover:bg-blue-500/20"
+              >
+                Я оплатил
+              </Button>
+            </div>
+            
+            <Alert className="bg-yellow-900/20 border-yellow-700 mb-4">
+              <AlertCircle className="h-4 w-4 text-yellow-400" />
+              <AlertTitle className="text-yellow-400">Важно!</AlertTitle>
+              <AlertDescription className="text-gray-300">
+                В сообщении к пожертвованию укажите ваш ID платежа и никнейм: {minecraftUsername}
+              </AlertDescription>
+            </Alert>
+            
+            <Button 
+              onClick={() => setOrderStatus('idle')} 
+              variant="ghost" 
+              className="text-gray-400 hover:text-white hover:bg-white/10"
+            >
+              Вернуться к корзине
             </Button>
           </div>
         ) : (
@@ -115,6 +215,26 @@ const Cart = () => {
                             <h3 className="font-semibold text-white">{item.product.name}</h3>
                             <p className="text-sm text-gray-400 mb-2">Категория: {item.product.category}</p>
                             <p className="font-bold text-blue-400">{item.product.price.toFixed(2)} ₽</p>
+                            
+                            {/* Поле для указания количества FCoins */}
+                            {isFCoinsProduct(item.product.id) && (
+                              <div className="mt-2">
+                                <Label htmlFor={`fcoins-quantity-${item.product.id}`} className="text-gray-300 text-sm">
+                                  Количество наборов (1 набор = 3 FCoins):
+                                </Label>
+                                <Input
+                                  id={`fcoins-quantity-${item.product.id}`}
+                                  type="number"
+                                  min="1"
+                                  value={fcoinsQuantity[item.product.id] || 1}
+                                  onChange={(e) => handleFCoinsQuantityChange(item.product.id, parseInt(e.target.value) || 1)}
+                                  className="mt-1 w-20 bg-white/10 border-gray-700 text-white"
+                                />
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Итого: {((fcoinsQuantity[item.product.id] || 1) * 3 * item.quantity)} FCoins
+                                </p>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <Button 
@@ -192,30 +312,15 @@ const Cart = () => {
 
                   <div>
                     <Label className="text-white mb-2 block">Способ оплаты</Label>
-                    <RadioGroup 
-                      value={paymentMethod} 
-                      onValueChange={setPaymentMethod}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center space-x-2 bg-white/10 p-3 rounded-md cursor-pointer">
-                        <RadioGroupItem id="payment-card" value="card" className="text-blue-500" />
-                        <Label htmlFor="payment-card" className="flex-grow cursor-pointer text-white">
-                          Банковская карта
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 bg-white/10 p-3 rounded-md cursor-pointer">
-                        <RadioGroupItem id="payment-qiwi" value="qiwi" className="text-blue-500" />
-                        <Label htmlFor="payment-qiwi" className="flex-grow cursor-pointer text-white">
-                          QIWI
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 bg-white/10 p-3 rounded-md cursor-pointer">
-                        <RadioGroupItem id="payment-webmoney" value="webmoney" className="text-blue-500" />
-                        <Label htmlFor="payment-webmoney" className="flex-grow cursor-pointer text-white">
-                          WebMoney
-                        </Label>
-                      </div>
-                    </RadioGroup>
+                    <div className="flex items-center space-x-2 bg-white/10 p-3 rounded-md">
+                      <RadioGroupItem id="payment-da" value="da" className="text-blue-500" checked readOnly />
+                      <Label htmlFor="payment-da" className="flex-grow text-white">
+                        DonationAlerts
+                      </Label>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      После нажатия кнопки "Оплатить" вы будете перенаправлены на страницу DonationAlerts
+                    </p>
                   </div>
 
                   {errorMessage && (
@@ -267,12 +372,12 @@ const Cart = () => {
             <div className="bg-white/5 p-4 rounded-lg">
               <div className="text-3xl mb-2">👤</div>
               <h3 className="text-lg font-semibold mb-2 text-white">Шаг 2: Указание никнейма</h3>
-              <p className="text-gray-300">Введите ваш Minecraft никнейм и оплатите заказ</p>
+              <p className="text-gray-300">Введите ваш Minecraft никнейм и оплатите через DonationAlerts</p>
             </div>
             <div className="bg-white/5 p-4 rounded-lg">
               <div className="text-3xl mb-2">✅</div>
               <h3 className="text-lg font-semibold mb-2 text-white">Шаг 3: Автоматическая выдача</h3>
-              <p className="text-gray-300">Система автоматически выдаст товары через RCON</p>
+              <p className="text-gray-300">После подтверждения платежа товары автоматически выдаются через RCON</p>
             </div>
           </div>
         </div>
@@ -282,7 +387,7 @@ const Cart = () => {
         <div className="container mx-auto px-4">
           <div className="text-center">
             <p className="text-gray-400">© {new Date().getFullYear()} FcGrief. Все права защищены.</p>
-            <p className="text-gray-500 text-sm mt-2">Безопасные платежи и мгновенная выдача товаров</p>
+            <p className="text-gray-500 text-sm mt-2">IP: c11.play2go.cloud:20095 | <a href="https://discord.gg/MBQYxKMpJx" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Discord</a></p>
           </div>
         </div>
       </footer>

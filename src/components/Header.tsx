@@ -50,6 +50,12 @@ const Header = () => {
             </span>
           </Link>
 
+          {/* Server IP Display */}
+          <div className="hidden md:flex items-center ml-6 px-3 py-1 bg-gray-800/50 rounded-full">
+            <span className="text-gray-400 text-xs mr-2">IP:</span>
+            <span className="text-green-400 text-sm font-mono">c11.play2go.cloud:20095</span>
+          </div>
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
@@ -81,6 +87,18 @@ const Header = () => {
               </Button>
             </Link>
 
+            {/* Discord Button */}
+            <a 
+              href="https://discord.gg/MBQYxKMpJx" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hidden md:flex items-center text-gray-300 hover:text-white"
+            >
+              <Button variant="ghost" size="sm" className="bg-indigo-600/20 hover:bg-indigo-600/30">
+                <span className="mr-1">Discord</span>
+              </Button>
+            </a>
+
             {/* Mobile Menu Trigger */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -108,6 +126,13 @@ const Header = () => {
                     </Button>
                   </div>
                   
+                  <div className="p-3 bg-gray-800/50 m-4 rounded-md">
+                    <div className="flex items-center">
+                      <span className="text-gray-400 text-xs mr-2">IP сервера:</span>
+                      <span className="text-green-400 text-sm font-mono">c11.play2go.cloud:20095</span>
+                    </div>
+                  </div>
+
                   <div className="py-4 flex-grow">
                     <nav className="flex flex-col space-y-1 px-2">
                       {navItems.map((item) => (
@@ -124,6 +149,16 @@ const Header = () => {
                           {item.title}
                         </Link>
                       ))}
+
+                      <a 
+                        href="https://discord.gg/MBQYxKMpJx" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="px-4 py-3 rounded-md text-gray-300 hover:text-white hover:bg-indigo-600/20 flex items-center"
+                      >
+                        <span className="text-indigo-400 mr-2">Discord</span>
+                        <span className="text-xs text-gray-500">discord.gg/MBQYxKMpJx</span>
+                      </a>
                     </nav>
                   </div>
                   

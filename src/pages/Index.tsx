@@ -3,12 +3,21 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const Index = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     setIsVisible(true);
+
+    // Автоматическая прокрутка слайдера
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % recentPurchases.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const categoryItems = [
@@ -31,6 +40,24 @@ const Index = () => {
       link: '/fcplus'
     }
   ];
+
+  // Недавние покупки для слайдера
+  const recentPurchases = [
+    { username: 'DragonSlayer777', product: 'KING', timestamp: '5 минут назад', price: '119.00 ₽' },
+    { username: 'CraftMaster123', product: '5 донат кейсов', timestamp: '12 минут назад', price: '200.00 ₽' },
+    { username: 'SteveTheBuilder', product: 'WIZARD', timestamp: '27 минут назад', price: '249.00 ₽' },
+    { username: 'EnderQueen', product: 'FC+ на год', timestamp: '45 минут назад', price: '568.00 ₽' },
+    { username: 'PixelWarrior', product: 'LEGEND', timestamp: '1 час назад', price: '550.00 ₽' },
+    { username: 'MineExplorer', product: '3 кейса с FCoins', timestamp: '1 час назад', price: '65.00 ₽' },
+  ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % recentPurchases.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + recentPurchases.length) % recentPurchases.length);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -99,32 +126,84 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center p-6">
                 <div className="text-4xl mb-4 text-minecraft-primary">🛡️</div>
-                <h3 className="text-xl font-bold mb-2">Уникальные привилегии</h3>
+                <h3 className="text-xl font-semibold mb-2">Уникальные привилегии</h3>
                 <p className="text-gray-600">Получите доступ к эксклюзивным возможностям и командам</p>
               </div>
               <div className="text-center p-6">
                 <div className="text-4xl mb-4 text-minecraft-primary">📦</div>
-                <h3 className="text-xl font-bold mb-2">Выгодные кейсы</h3>
+                <h3 className="text-xl font-semibold mb-2">Выгодные кейсы</h3>
                 <p className="text-gray-600">Открывайте кейсы с ценными предметами и бонусами</p>
               </div>
               <div className="text-center p-6">
                 <div className="text-4xl mb-4 text-minecraft-primary">🔒</div>
-                <h3 className="text-xl font-bold mb-2">Безопасные платежи</h3>
+                <h3 className="text-xl font-semibold mb-2">Безопасные платежи</h3>
                 <p className="text-gray-600">Мгновенное получение покупок после оплаты</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Call to Action */}
-        <section 
-          className={`text-center py-16 bg-minecraft-primary rounded-xl text-white mb-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-        >
-          <h2 className="text-3xl font-bold mb-4">Готовы начать?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">Выбирайте из широкого ассортимента товаров для улучшения игрового процесса</p>
-          <Button asChild variant="outline" className="bg-white text-minecraft-primary hover:bg-gray-100 border-white">
-            <Link to="/privileges">Купить привилегию</Link>
-          </Button>
+        {/* Recent Purchases Slider */}
+        <section className="py-16 bg-minecraft-primary/80 rounded-xl text-white mb-8">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold mb-8 text-center">Недавние покупки</h2>
+            
+            <div className="relative max-w-4xl mx-auto">
+              <div className="overflow-hidden">
+                <div 
+                  className="flex transition-transform duration-700 ease-in-out"
+                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                  {recentPurchases.map((purchase, index) => (
+                    <div key={index} className="min-w-full px-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 text-center">
+                        <div className="inline-block bg-white/20 rounded-full p-4 mb-4">
+                          <span className="text-4xl">👤</span>
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2">{purchase.username}</h3>
+                        <p className="text-xl mb-2">купил <span className="text-yellow-300 font-bold">{purchase.product}</span></p>
+                        <div className="flex justify-center items-center space-x-4 mt-4">
+                          <span className="text-gray-300">{purchase.timestamp}</span>
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-yellow-300 font-bold">
+                            {purchase.price}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <button 
+                onClick={prevSlide}
+                className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-4 bg-minecraft-dark/80 hover:bg-minecraft-dark text-white rounded-full p-2"
+                aria-label="Предыдущий слайд"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+              
+              <button 
+                onClick={nextSlide}
+                className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-4 bg-minecraft-dark/80 hover:bg-minecraft-dark text-white rounded-full p-2"
+                aria-label="Следующий слайд"
+              >
+                <ArrowRight className="h-6 w-6" />
+              </button>
+              
+              <div className="flex justify-center mt-6 space-x-2">
+                {recentPurchases.map((_, index) => (
+                  <button 
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-3 h-3 rounded-full transition-colors ${
+                      currentSlide === index ? 'bg-white' : 'bg-white/30 hover:bg-white/50'
+                    }`}
+                    aria-label={`Перейти к слайду ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
       </main>
 
@@ -134,6 +213,7 @@ const Index = () => {
             <div>
               <h3 className="text-xl font-bold mb-4">FcGrief</h3>
               <p className="text-gray-300">Лучший Minecraft сервер с уникальными возможностями</p>
+              <p className="text-gray-300 mt-2">IP: c11.play2go.cloud:20095</p>
             </div>
             <div>
               <h3 className="text-xl font-bold mb-4">Ссылки</h3>
@@ -146,8 +226,8 @@ const Index = () => {
             </div>
             <div>
               <h3 className="text-xl font-bold mb-4">Контакты</h3>
-              <p className="text-gray-300">IP: play.fcgrief.com</p>
-              <p className="text-gray-300">Дискорд: discord.gg/fcgrief</p>
+              <p className="text-gray-300">IP: c11.play2go.cloud:20095</p>
+              <p className="text-gray-300">Дискорд: <a href="https://discord.gg/MBQYxKMpJx" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">discord.gg/MBQYxKMpJx</a></p>
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center">
