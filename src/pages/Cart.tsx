@@ -8,24 +8,47 @@ import { Trash2, MinusCircle, PlusCircle, AlertCircle, ArrowRight, CheckCircle2 
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PaymentService } from '@/components/PaymentService';
+import { RconService } from '@/components/RconService';
 
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const [minecraftUsername, setMinecraftUsername] = useState('');
   const [fcoinsQuantity, setFcoinsQuantity] = useState<Record<string, number>>({});
+  const [fcoinsSum, setFcoinsSum] = useState<Record<string, number>>({});
   const [paymentId, setPaymentId] = useState('');
   const [orderStatus, setOrderStatus] = useState<'idle' | 'processing' | 'waitingConfirmation' | 'completed' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [verificationInProgress, setVerificationInProgress] = useState(false);
 
   const handleQuantityChange = (id: string, currentQuantity: number, change: number) => {
     updateQuantity(id, currentQuantity + change);
   };
 
-  const handleFCoinsQuantityChange = (id: string, quantity: number) => {
-    setFcoinsQuantity(prev => ({
-      ...prev,
-      [id]: quantity
-    }));
+  const handleFCoinsQuantityChange = (id: string, value: string, type: 'sum' | 'quantity') => {
+    const numValue = parseInt(value) || 1;
+    
+    if (type === 'sum') {
+      setFcoinsSum(prev => {
+        const newSum = { ...prev, [id]: numValue };
+        // Обновляем количество на основе суммы (3 FCoins за 1 рубль)
+        setFcoinsQuantity(prevQty => ({
+          ...prevQty,
+          [id]: numValue * 3
+        }));
+        return newSum;
+      });
+    } else {
+      setFcoinsQuantity(prev => {
+        const newQty = { ...prev, [id]: numValue };
+        // Обновляем сумму на основе количества (1 рубль за 3 FCoins)
+        setFcoinsSum(prevSum => ({
+          ...prevSum,
+          [id]: Math.ceil(numValue / 3)
+        }));
+        return newQty;
+      });
+    }
   };
 
   // Проверка, является ли товар валютой FCoins
@@ -66,33 +89,68 @@ const Cart = () => {
     return `https://www.donationalerts.com/r/fcgrief?amount=${totalPrice.toFixed(2)}&message=${encodeURIComponent(message + " PaymentID:" + paymentId)}`;
   };
 
-  const handlePaymentVerification = () => {
-    setOrderStatus('processing');
+  const handlePaymentVerification = async () => {
+    setVerificationInProgress(true);
     
-    // Имитация проверки платежа (в реальном сценарии здесь будет API-запрос)
-    setTimeout(() => {
-      // Успешная проверка платежа
-      completeOrder();
-    }, 2000);
+    try {
+      // Здесь будет реальная проверка платежа через API DonationAlerts
+      // Для демонстрации мы создаем задержку
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // В реальном приложении здесь должна быть проверка платежа
+      const paymentVerified = await PaymentService.checkPaymentStatus(paymentId);
+      
+      if (paymentVerified) {
+        completeOrder();
+      } else {
+        setErrorMessage('Платеж не найден. Пожалуйста, убедитесь, что вы совершили платеж и указали правильный PaymentID.');
+        setVerificationInProgress(false);
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке платежа', error);
+      setErrorMessage('Произошла ошибка при проверке платежа. Пожалуйста, попробуйте позже.');
+      setVerificationInProgress(false);
+    }
   };
 
   const completeOrder = async () => {
+    setOrderStatus('processing');
+    
     try {
-      // Здесь будет реальное подключение к RCON
-      console.log('RCON connection to c11.play2go.cloud:20644');
-      console.log('Username:', minecraftUsername);
-      console.log('Items:', cartItems.map(item => {
-        // Для FCoins применяем особую логику с учетом количества
-        if (isFCoinsProduct(item.product.id)) {
-          const coinsPerPurchase = 3; // 3 FCoins за 1 рубль
-          const totalCoins = item.quantity * coinsPerPurchase * (fcoinsQuantity[item.product.id] || 1);
-          return `lp user ${minecraftUsername} addbalance fcoins ${totalCoins}`;
-        } else {
-          // Для других товаров стандартная команда
-          return `lp user ${minecraftUsername} parent add ${item.product.id} server=survival`;
-        }
-      }));
+      // Подключение к RCON серверу
+      await RconService.connect('c11.play2go.cloud', 20644, 'secure_rcon_password');
       
+      // Выполнение команд для выдачи товаров
+      for (const item of cartItems) {
+        if (isFCoinsProduct(item.product.id)) {
+          // Для FCoins: используем указанное пользователем количество
+          const totalCoins = fcoinsQuantity[item.product.id] || (item.quantity * 3);
+          await RconService.sendCommand(`lp user ${minecraftUsername} addbalance fcoins ${totalCoins}`);
+        } else {
+          // Для других предметов
+          for (let i = 0; i < item.quantity; i++) {
+            // Команда зависит от типа товара
+            if (item.product.category === 'Привилегии') {
+              await RconService.sendCommand(`lp user ${minecraftUsername} parent add ${item.product.id.toLowerCase()} server=survival`);
+            } else if (item.product.category === 'Кейсы') {
+              await RconService.sendCommand(`crate give ${minecraftUsername} ${item.product.id.toLowerCase()} ${item.quantity}`);
+            } else if (item.product.category === 'FC+') {
+              const duration = item.product.name.includes('месяц') ? '30d' : 
+                               item.product.name.includes('год') ? '365d' : 'unlimited';
+              await RconService.sendCommand(`fcplus add ${minecraftUsername} ${duration}`);
+            } else if (item.product.name.includes('РАЗБАН')) {
+              await RconService.sendCommand(`unban ${minecraftUsername}`);
+            } else if (item.product.name.includes('РАЗМУТ')) {
+              await RconService.sendCommand(`unmute ${minecraftUsername}`);
+            }
+          }
+        }
+      }
+      
+      // Закрытие соединения с RCON
+      RconService.disconnect();
+      
+      // Обновление статуса заказа
       setOrderStatus('completed');
       
       // Очистка корзины после успешной покупки
@@ -103,7 +161,23 @@ const Cart = () => {
       console.error('RCON error:', error);
       setOrderStatus('error');
       setErrorMessage('Произошла ошибка при выдаче товаров. Обратитесь в поддержку.');
+      setVerificationInProgress(false);
     }
+  };
+
+  // Получение или инициализация количества и суммы FCoins для товара
+  const getFCoinsData = (productId: string) => {
+    if (!fcoinsQuantity[productId]) {
+      setFcoinsQuantity(prev => ({ ...prev, [productId]: 3 }));
+    }
+    if (!fcoinsSum[productId]) {
+      setFcoinsSum(prev => ({ ...prev, [productId]: 1 }));
+    }
+    
+    return {
+      quantity: fcoinsQuantity[productId] || 3,
+      sum: fcoinsSum[productId] || 1
+    };
   };
 
   return (
@@ -163,10 +237,25 @@ const Cart = () => {
                 onClick={handlePaymentVerification} 
                 variant="outline" 
                 className="border-blue-500 text-blue-400 hover:bg-blue-500/20"
+                disabled={verificationInProgress}
               >
-                Я оплатил
+                {verificationInProgress ? (
+                  <div className="flex items-center">
+                    <span className="animate-spin mr-2">⚙️</span> Проверка...
+                  </div>
+                ) : 'Я оплатил'}
               </Button>
             </div>
+            
+            {errorMessage && (
+              <Alert className="bg-red-900/20 border-red-700 mb-4">
+                <AlertCircle className="h-4 w-4 text-red-400" />
+                <AlertTitle className="text-red-400">Ошибка</AlertTitle>
+                <AlertDescription className="text-gray-300">
+                  {errorMessage}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <Alert className="bg-yellow-900/20 border-yellow-700 mb-4">
               <AlertCircle className="h-4 w-4 text-yellow-400" />
@@ -202,70 +291,94 @@ const Cart = () => {
                 ) : (
                   <>
                     <div className="space-y-4">
-                      {cartItems.map((item) => (
-                        <div key={item.product.id} className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white/5 rounded-lg p-4">
-                          <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                            <img 
-                              src={item.product.image} 
-                              alt={item.product.name} 
-                              className="w-full h-full object-cover"
-                            />
+                      {cartItems.map((item) => {
+                        const isFCoin = isFCoinsProduct(item.product.id);
+                        const fcoinsData = isFCoin ? getFCoinsData(item.product.id) : null;
+                        
+                        return (
+                          <div key={item.product.id} className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white/5 rounded-lg p-4">
+                            <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                              <img 
+                                src={item.product.image} 
+                                alt={item.product.name} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-grow text-center sm:text-left">
+                              <h3 className="font-semibold text-white">{item.product.name}</h3>
+                              <p className="text-sm text-gray-400 mb-2">Категория: {item.product.category}</p>
+                              <p className="font-bold text-blue-400">{item.product.price.toFixed(2)} ₽</p>
+                              
+                              {/* Спецальное поле для FCoins */}
+                              {isFCoin && fcoinsData && (
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor={`fcoins-sum-${item.product.id}`} className="text-gray-300 text-sm block mb-1">
+                                      Сумма
+                                    </Label>
+                                    <div className="flex items-center">
+                                      <Input
+                                        id={`fcoins-sum-${item.product.id}`}
+                                        type="number"
+                                        min="1"
+                                        value={fcoinsData.sum}
+                                        onChange={(e) => handleFCoinsQuantityChange(item.product.id, e.target.value, 'sum')}
+                                        className="bg-white/10 border-gray-700 text-white w-full"
+                                      />
+                                      <span className="ml-2 text-gray-400">₽</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={`fcoins-quantity-${item.product.id}`} className="text-gray-300 text-sm block mb-1">
+                                      Количество
+                                    </Label>
+                                    <div className="flex items-center">
+                                      <Input
+                                        id={`fcoins-quantity-${item.product.id}`}
+                                        type="number"
+                                        min="3"
+                                        step="3"
+                                        value={fcoinsData.quantity}
+                                        onChange={(e) => handleFCoinsQuantityChange(item.product.id, e.target.value, 'quantity')}
+                                        className="bg-white/10 border-gray-700 text-white w-full"
+                                      />
+                                      <span className="ml-2 text-gray-400">FCoins</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                onClick={() => handleQuantityChange(item.product.id, item.quantity, -1)} 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
+                                disabled={item.quantity <= 1}
+                              >
+                                <MinusCircle className="h-4 w-4" />
+                              </Button>
+                              <span className="text-white min-w-[30px] text-center">{item.quantity}</span>
+                              <Button 
+                                onClick={() => handleQuantityChange(item.product.id, item.quantity, 1)} 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
+                              >
+                                <PlusCircle className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                onClick={() => removeFromCart(item.product.id)} 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-red-500 hover:bg-red-500/20"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex-grow text-center sm:text-left">
-                            <h3 className="font-semibold text-white">{item.product.name}</h3>
-                            <p className="text-sm text-gray-400 mb-2">Категория: {item.product.category}</p>
-                            <p className="font-bold text-blue-400">{item.product.price.toFixed(2)} ₽</p>
-                            
-                            {/* Поле для указания количества FCoins */}
-                            {isFCoinsProduct(item.product.id) && (
-                              <div className="mt-2">
-                                <Label htmlFor={`fcoins-quantity-${item.product.id}`} className="text-gray-300 text-sm">
-                                  Количество наборов (1 набор = 3 FCoins):
-                                </Label>
-                                <Input
-                                  id={`fcoins-quantity-${item.product.id}`}
-                                  type="number"
-                                  min="1"
-                                  value={fcoinsQuantity[item.product.id] || 1}
-                                  onChange={(e) => handleFCoinsQuantityChange(item.product.id, parseInt(e.target.value) || 1)}
-                                  className="mt-1 w-20 bg-white/10 border-gray-700 text-white"
-                                />
-                                <p className="text-xs text-gray-400 mt-1">
-                                  Итого: {((fcoinsQuantity[item.product.id] || 1) * 3 * item.quantity)} FCoins
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              onClick={() => handleQuantityChange(item.product.id, item.quantity, -1)} 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
-                              disabled={item.quantity <= 1}
-                            >
-                              <MinusCircle className="h-4 w-4" />
-                            </Button>
-                            <span className="text-white min-w-[30px] text-center">{item.quantity}</span>
-                            <Button 
-                              onClick={() => handleQuantityChange(item.product.id, item.quantity, 1)} 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
-                            >
-                              <PlusCircle className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              onClick={() => removeFromCart(item.product.id)} 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-red-500 hover:bg-red-500/20"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     <div className="flex justify-between items-center mt-6">

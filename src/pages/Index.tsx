@@ -41,14 +41,14 @@ const Index = () => {
     }
   ];
 
-  // Недавние покупки для слайдера
+  // Данные о последних покупках (будут загружаться с сервера)
   const recentPurchases = [
-    { username: 'DragonSlayer777', product: 'KING', timestamp: '5 минут назад', price: '119.00 ₽' },
-    { username: 'CraftMaster123', product: '5 донат кейсов', timestamp: '12 минут назад', price: '200.00 ₽' },
-    { username: 'SteveTheBuilder', product: 'WIZARD', timestamp: '27 минут назад', price: '249.00 ₽' },
-    { username: 'EnderQueen', product: 'FC+ на год', timestamp: '45 минут назад', price: '568.00 ₽' },
-    { username: 'PixelWarrior', product: 'LEGEND', timestamp: '1 час назад', price: '550.00 ₽' },
-    { username: 'MineExplorer', product: '3 кейса с FCoins', timestamp: '1 час назад', price: '65.00 ₽' },
+    { username: 'IceDragon', product: 'LEGEND', timestamp: '2 минуты назад', price: '550.00 ₽' },
+    { username: 'CraftGamer', product: '3 донат кейса', timestamp: '5 минут назад', price: '120.00 ₽' },
+    { username: 'EmeraldMiner', product: 'WIZARD', timestamp: '8 минут назад', price: '249.00 ₽' },
+    { username: 'RedLava', product: 'FC+ на месяц', timestamp: '12 минут назад', price: '119.00 ₽' },
+    { username: 'DarkSlayer', product: 'KING', timestamp: '15 минут назад', price: '119.00 ₽' },
+    { username: 'NetherWalk', product: '5 кейсов с FCoins', timestamp: '22 минуты назад', price: '105.00 ₽' },
   ];
 
   const nextSlide = () => {

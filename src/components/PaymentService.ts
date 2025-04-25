@@ -38,21 +38,16 @@ export class PaymentService {
     
     console.log(`[Payment] Checking payment status for ID: ${paymentId}`);
     
-    // Для демонстрации: имитируем успешный платеж
-    const payment = this.payments.get(paymentId);
+    // Для безопасности проверка должна происходить только через API
+    // В этой демо-версии мы подтверждаем платеж для имитации процесса
+    // В реальном приложении этот код должен быть заменен на проверку через API DonationAlerts
     
-    if (payment) {
-      // Искусственная задержка для имитации API-запроса
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // В реальном API здесь был бы статус платежа
-      payment.completed = true;
-      this.payments.set(paymentId, payment);
-      
-      return payment.completed;
-    }
+    // Искусственная задержка для имитации API-запроса
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    return false;
+    // В реальном API здесь был бы статус платежа
+    // Это упрощение для демонстрации - в реальности нужна настоящая проверка
+    return true; // Всегда возвращаем true только для демонстрации
   }
 
   /**

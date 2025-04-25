@@ -1,137 +1,117 @@
-// Сервис для работы с RCON (Remote Console Protocol)
-// В реальном приложении этот сервис будет подключаться к RCON порту Minecraft сервера
-
-interface RconConfig {
-  host: string;
-  port: number;
-  password: string;
-}
+/**
+ * Сервис для работы с RCON (Remote Console) сервера Minecraft
+ * 
+ * В реальном приложении этот сервис будет использовать библиотеку
+ * для подключения к RCON серверу Minecraft и отправки команд.
+ * 
+ * Для фронтенд-приложения рекомендуется реализовать эту логику
+ * на серверной части, чтобы не хранить пароль от RCON в клиентском коде.
+ */
 
 export class RconService {
-  private static config: RconConfig = {
-    host: 'c11.play2go.cloud',
-    port: 20644,
-    password: 'your_secure_rcon_password_here', // В реальном приложении брать из переменных окружения
-  };
+  private static isConnected: boolean = false;
+  private static host: string = '';
+  private static port: number = 0;
+  private static password: string = '';
+
+  /**
+   * Подключиться к RCON серверу
+   */
+  public static async connect(host: string, port: number, password: string): Promise<boolean> {
+    console.log(`[RCON] Connecting to ${host}:${port}`);
+    
+    // В реальном приложении здесь будет код для подключения к RCON
+    // Для демонстрации просто сохраняем параметры подключения
+    this.host = host;
+    this.port = port;
+    this.password = password;
+    this.isConnected = true;
+    
+    // Искусственная задержка для имитации подключения
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log(`[RCON] Connected to ${host}:${port}`);
+    return true;
+  }
+
+  /**
+   * Отправить команду на сервер
+   */
+  public static async sendCommand(command: string): Promise<string> {
+    if (!this.isConnected) {
+      throw new Error('Not connected to RCON server');
+    }
+    
+    console.log(`[RCON] Sending command: ${command}`);
+    
+    // В реальном приложении здесь будет код для отправки команды на сервер
+    // Для демонстрации просто логируем команду
+    
+    // Искусственная задержка для имитации выполнения команды
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    console.log(`[RCON] Command executed: ${command}`);
+    return `Command executed: ${command}`;
+  }
+
+  /**
+   * Отключиться от RCON сервера
+   */
+  public static disconnect(): void {
+    if (!this.isConnected) {
+      return;
+    }
+    
+    console.log(`[RCON] Disconnecting from ${this.host}:${this.port}`);
+    
+    // В реальном приложении здесь будет код для отключения от RCON
+    this.isConnected = false;
+    
+    console.log(`[RCON] Disconnected`);
+  }
+
+  /**
+   * Проверить статус подключения
+   */
+  public static isActive(): boolean {
+    return this.isConnected;
+  }
 
   /**
    * Выдать привилегию игроку
    */
-  public static async givePrivilege(username: string, privilegeId: string): Promise<boolean> {
+  public static async givePrivilege(username: string, privilege: string): Promise<boolean> {
     try {
-      console.log(`[RCON] Выдаем привилегию ${privilegeId} игроку ${username}`);
-      
-      // В реальном сценарии здесь будет подключение к RCON и отправка команды
-      // const command = `lp user ${username} parent add ${privilegeId}`;
-      // await RconClient.send(this.config, command);
-      
+      await this.sendCommand(`lp user ${username} parent add ${privilege} server=survival`);
       return true;
     } catch (error) {
-      console.error('RCON error while giving privilege:', error);
-      throw new Error('Не удалось выдать привилегию. Пожалуйста, обратитесь к администрации.');
+      console.error(`[RCON] Error giving privilege to ${username}:`, error);
+      return false;
     }
   }
 
   /**
-   * Выдать кейс игроку
+   * Выдать предметы из кейса игроку
    */
-  public static async giveCases(username: string, caseType: string, quantity: number): Promise<boolean> {
+  public static async giveCrate(username: string, crateId: string, quantity: number): Promise<boolean> {
     try {
-      console.log(`[RCON] Выдаем ${quantity} кейсов типа ${caseType} игроку ${username}`);
-      
-      // В реальном сценарии здесь будет подключение к RCON и отправка команды
-      // const command = `cases give ${username} ${caseType} ${quantity}`;
-      // await RconClient.send(this.config, command);
-      
+      await this.sendCommand(`crate give ${username} ${crateId} ${quantity}`);
       return true;
     } catch (error) {
-      console.error('RCON error while giving cases:', error);
-      throw new Error('Не удалось выдать кейсы. Пожалуйста, обратитесь к администрации.');
+      console.error(`[RCON] Error giving crate to ${username}:`, error);
+      return false;
     }
   }
 
   /**
-   * Выдать FC+ игроку
+   * Выдать игровую валюту игроку
    */
-  public static async giveFCPlus(username: string, duration: string): Promise<boolean> {
+  public static async giveCurrency(username: string, currency: string, amount: number): Promise<boolean> {
     try {
-      console.log(`[RCON] Выдаем FC+ на период ${duration} игроку ${username}`);
-      
-      // В реальном сценарии здесь будет подключение к RCON и отправка команды
-      // const command = `fcplus add ${username} ${duration}`;
-      // await RconClient.send(this.config, command);
-      
+      await this.sendCommand(`lp user ${username} addbalance ${currency} ${amount}`);
       return true;
     } catch (error) {
-      console.error('RCON error while giving FC+:', error);
-      throw new Error('Не удалось выдать FC+. Пожалуйста, обратитесь к администрации.');
-    }
-  }
-
-  /**
-   * Выдать FCoins игроку
-   */
-  public static async giveFCoins(username: string, amount: number): Promise<boolean> {
-    try {
-      console.log(`[RCON] Выдаем ${amount} FCoins игроку ${username}`);
-      
-      // В реальном сценарии здесь будет подключение к RCON и отправка команды
-      // const command = `lp user ${username} addbalance fcoins ${amount}`;
-      // await RconClient.send(this.config, command);
-      
-      return true;
-    } catch (error) {
-      console.error('RCON error while giving FCoins:', error);
-      throw new Error('Не удалось выдать FCoins. Пожалуйста, обратитесь к администрации.');
-    }
-  }
-
-  /**
-   * Разбанить игрока
-   */
-  public static async unbanPlayer(username: string): Promise<boolean> {
-    try {
-      console.log(`[RCON] Разбаниваем игрока ${username}`);
-      
-      // В реальном сценарии здесь будет подключение к RCON и отправка команды
-      // const command = `pardon ${username}`;
-      // await RconClient.send(this.config, command);
-      
-      return true;
-    } catch (error) {
-      console.error('RCON error while unbanning player:', error);
-      throw new Error('Не удалось разбанить игрока. Пожалуйста, обратитесь к администрации.');
-    }
-  }
-
-  /**
-   * Размутить игрока
-   */
-  public static async unmutePlayer(username: string): Promise<boolean> {
-    try {
-      console.log(`[RCON] Размучиваем игрока ${username}`);
-      
-      // В реальном сценарии здесь будет подключение к RCON и отправка команды
-      // const command = `mute ${username} remove`;
-      // await RconClient.send(this.config, command);
-      
-      return true;
-    } catch (error) {
-      console.error('RCON error while unmuting player:', error);
-      throw new Error('Не удалось размутить игрока. Пожалуйста, обратитесь к администрации.');
-    }
-  }
-
-  /**
-   * Проверить статус сервера и подключения
-   */
-  public static async checkConnection(): Promise<boolean> {
-    try {
-      console.log(`[RCON] Проверка подключения к ${this.config.host}:${this.config.port}`);
-      // В реальном сценарии здесь будет проверка соединения
-      return true;
-    } catch (error) {
-      console.error('RCON connection error:', error);
+      console.error(`[RCON] Error giving currency to ${username}:`, error);
       return false;
     }
   }
