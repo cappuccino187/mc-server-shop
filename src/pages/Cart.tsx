@@ -312,12 +312,14 @@ const Cart = () => {
 
                   <div>
                     <Label className="text-white mb-2 block">Способ оплаты</Label>
-                    <div className="flex items-center space-x-2 bg-white/10 p-3 rounded-md">
-                      <RadioGroupItem id="payment-da" value="da" className="text-blue-500" checked readOnly />
-                      <Label htmlFor="payment-da" className="flex-grow text-white">
-                        DonationAlerts
-                      </Label>
-                    </div>
+                    <RadioGroup defaultValue="da" className="space-y-2">
+                      <div className="flex items-center space-x-2 bg-white/10 p-3 rounded-md">
+                        <RadioGroupItem id="payment-da" value="da" className="text-blue-500" />
+                        <Label htmlFor="payment-da" className="flex-grow text-white">
+                          DonationAlerts
+                        </Label>
+                      </div>
+                    </RadioGroup>
                     <p className="text-xs text-gray-400 mt-2">
                       После нажатия кнопки "Оплатить" вы будете перенаправлены на страницу DonationAlerts
                     </p>
