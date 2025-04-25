@@ -94,4 +94,12 @@ export class PaymentService {
     // Для демонстрации возвращаем пустой массив
     return [];
   }
+  
+  /**
+   * Проверить, было ли закрыто окно DonationAlerts
+   * В реальной реализации это должно быть реализовано через проверку API
+   */
+  public static checkWindowClosed(windowRef: Window | null): boolean {
+    return windowRef === null || windowRef.closed;
+  }
 }

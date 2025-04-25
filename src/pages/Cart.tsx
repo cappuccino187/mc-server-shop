@@ -12,7 +12,7 @@ import { PaymentService } from '@/components/PaymentService';
 import { RconService } from '@/components/RconService';
 
 const Cart = () => {
-  const { cartItems, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
   const [minecraftUsername, setMinecraftUsername] = useState('');
   const [fcoinsQuantity, setFcoinsQuantity] = useState<Record<string, number>>({});
   const [fcoinsSum, setFcoinsSum] = useState<Record<string, number>>({});
@@ -20,6 +20,18 @@ const Cart = () => {
   const [orderStatus, setOrderStatus] = useState<'idle' | 'processing' | 'waitingConfirmation' | 'completed' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [verificationInProgress, setVerificationInProgress] = useState(false);
+  const [donationWindowOpened, setDonationWindowOpened] = useState(false);
+  const [donationWindowReference, setDonationWindowReference] = useState<Window | null>(null);
+
+  const totalPrice = cartItems.reduce((total, item) => {
+    if (isFCoinsProduct(item.product.id)) {
+      // Для FCoins используем значение из ввода суммы
+      const sum = fcoinsSum[item.product.id] || 1;
+      return total + sum;
+    } else {
+      return total + item.product.price * item.quantity;
+    }
+  }, 0);
 
   const handleQuantityChange = (id: string, currentQuantity: number, change: number) => {
     updateQuantity(id, currentQuantity + change);
@@ -75,6 +87,11 @@ const Cart = () => {
     
     // Переход к ожиданию подтверждения
     setOrderStatus('waitingConfirmation');
+    
+    // Открываем окно DonationAlerts
+    const donationWindow = window.open(donationUrl, '_blank', 'width=800,height=600');
+    setDonationWindowReference(donationWindow);
+    setDonationWindowOpened(true);
   };
 
   const generateDonationUrl = () => {
@@ -90,6 +107,18 @@ const Cart = () => {
   };
 
   const handlePaymentVerification = async () => {
+    // Проверяем, было ли открыто окно оплаты
+    if (!donationWindowOpened) {
+      setErrorMessage('Пожалуйста, сначала перейдите к оплате');
+      return;
+    }
+    
+    // Проверяем, закрыто ли окно DonationAlerts (признак завершения оплаты)
+    if (donationWindowReference && !donationWindowReference.closed) {
+      setErrorMessage('Пожалуйста, завершите оплату в окне DonationAlerts перед подтверждением');
+      return;
+    }
+    
     setVerificationInProgress(true);
     
     try {
@@ -229,7 +258,12 @@ const Cart = () => {
             
             <div className="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
               <Button asChild className="bg-green-600 hover:bg-green-500">
-                <a href="https://www.donationalerts.com/r/fcgrief" target="_blank" rel="noopener noreferrer">
+                <a 
+                  href="https://www.donationalerts.com/r/fcgrief" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  onClick={() => setDonationWindowOpened(true)}
+                >
                   Перейти к оплате
                 </a>
               </Button>
@@ -307,66 +341,75 @@ const Cart = () => {
                             <div className="flex-grow text-center sm:text-left">
                               <h3 className="font-semibold text-white">{item.product.name}</h3>
                               <p className="text-sm text-gray-400 mb-2">Категория: {item.product.category}</p>
-                              <p className="font-bold text-blue-400">{item.product.price.toFixed(2)} ₽</p>
+                              {!isFCoin && (
+                                <p className="font-bold text-blue-400">{item.product.price.toFixed(2)} ₽</p>
+                              )}
                               
-                              {/* Спецальное поле для FCoins */}
+                              {/* Специальное поле для FCoins */}
                               {isFCoin && fcoinsData && (
-                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <div>
-                                    <Label htmlFor={`fcoins-sum-${item.product.id}`} className="text-gray-300 text-sm block mb-1">
-                                      Сумма
-                                    </Label>
-                                    <div className="flex items-center">
-                                      <Input
-                                        id={`fcoins-sum-${item.product.id}`}
-                                        type="number"
-                                        min="1"
-                                        value={fcoinsData.sum}
-                                        onChange={(e) => handleFCoinsQuantityChange(item.product.id, e.target.value, 'sum')}
-                                        className="bg-white/10 border-gray-700 text-white w-full"
-                                      />
-                                      <span className="ml-2 text-gray-400">₽</span>
+                                <div className="mt-2 space-y-2">
+                                  <p className="text-sm text-gray-400">1.00 ₽ за 3 ед.</p>
+                                  <div className="grid grid-cols-2 gap-4 max-w-md">
+                                    <div>
+                                      <Label htmlFor={`fcoins-sum-${item.product.id}`} className="text-gray-300 text-sm block mb-1">
+                                        Сумма
+                                      </Label>
+                                      <div className="flex items-center">
+                                        <Input
+                                          id={`fcoins-sum-${item.product.id}`}
+                                          type="number"
+                                          min="1"
+                                          value={fcoinsData.sum}
+                                          onChange={(e) => handleFCoinsQuantityChange(item.product.id, e.target.value, 'sum')}
+                                          className="bg-white/10 border-gray-700 text-white w-full"
+                                        />
+                                        <span className="ml-2 text-gray-400">₽</span>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div>
-                                    <Label htmlFor={`fcoins-quantity-${item.product.id}`} className="text-gray-300 text-sm block mb-1">
-                                      Количество
-                                    </Label>
-                                    <div className="flex items-center">
-                                      <Input
-                                        id={`fcoins-quantity-${item.product.id}`}
-                                        type="number"
-                                        min="3"
-                                        step="3"
-                                        value={fcoinsData.quantity}
-                                        onChange={(e) => handleFCoinsQuantityChange(item.product.id, e.target.value, 'quantity')}
-                                        className="bg-white/10 border-gray-700 text-white w-full"
-                                      />
-                                      <span className="ml-2 text-gray-400">FCoins</span>
+                                    <div>
+                                      <Label htmlFor={`fcoins-quantity-${item.product.id}`} className="text-gray-300 text-sm block mb-1">
+                                        Количество
+                                      </Label>
+                                      <div className="flex items-center">
+                                        <Input
+                                          id={`fcoins-quantity-${item.product.id}`}
+                                          type="number"
+                                          min="3"
+                                          step="3"
+                                          value={fcoinsData.quantity}
+                                          onChange={(e) => handleFCoinsQuantityChange(item.product.id, e.target.value, 'quantity')}
+                                          className="bg-white/10 border-gray-700 text-white w-full"
+                                        />
+                                        <span className="ml-2 text-gray-400">FCoins</span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button 
-                                onClick={() => handleQuantityChange(item.product.id, item.quantity, -1)} 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
-                                disabled={item.quantity <= 1}
-                              >
-                                <MinusCircle className="h-4 w-4" />
-                              </Button>
-                              <span className="text-white min-w-[30px] text-center">{item.quantity}</span>
-                              <Button 
-                                onClick={() => handleQuantityChange(item.product.id, item.quantity, 1)} 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
-                              >
-                                <PlusCircle className="h-4 w-4" />
-                              </Button>
+                              {!isFCoin && (
+                                <>
+                                  <Button 
+                                    onClick={() => handleQuantityChange(item.product.id, item.quantity, -1)} 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
+                                    disabled={item.quantity <= 1}
+                                  >
+                                    <MinusCircle className="h-4 w-4" />
+                                  </Button>
+                                  <span className="text-white min-w-[30px] text-center">{item.quantity}</span>
+                                  <Button 
+                                    onClick={() => handleQuantityChange(item.product.id, item.quantity, 1)} 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
+                                  >
+                                    <PlusCircle className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                               <Button 
                                 onClick={() => removeFromCart(item.product.id)} 
                                 variant="ghost" 
