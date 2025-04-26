@@ -11,6 +11,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PaymentService } from '@/components/PaymentService';
 import { RconService } from '@/components/RconService';
 
+// Проверка, является ли товар валютой FCoins
+const isFCoinsProduct = (id: string) => {
+  return id.includes('currency-fcoins');
+};
+
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
   const [minecraftUsername, setMinecraftUsername] = useState('');
@@ -61,11 +66,6 @@ const Cart = () => {
         return newQty;
       });
     }
-  };
-
-  // Проверка, является ли товар валютой FCoins
-  const isFCoinsProduct = (id: string) => {
-    return id.includes('currency-fcoins');
   };
 
   const handleCheckout = async () => {
